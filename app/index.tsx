@@ -20,34 +20,45 @@ export default function HomeScreen() {
   const [places, setPlaces] = useState<Place[]>([]);
 
   const getLocation = async () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     let { status } = await Location.requestForegroundPermissionsAsync();
+
     if (status === 'granted') {
       let loc = await Location.getCurrentPositionAsync({});
       setCoords(`${loc.coords.latitude.toFixed(2)}, ${loc.coords.longitude.toFixed(2)}`);
+
+      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    } else {
+      alert('Tillstånd för plats nekat');
     }
   };
 
   const pickImage = async () => {
-    Haptics.selectionAsync();
+    await Haptics.selectionAsync();
     let res = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ['images'],
     });
-    if (!res.canceled) setImage(res.assets[0].uri);
+
+    if (!res.canceled) {
+      setImage(res.assets[0].uri);
+    }
   };
 
-  const savePlace = () => {
-    if (!name) {
+  const savePlace = async () => {
+    if (!name.trim()) {
       alert('Skriv namn!');
       return;
     }
+
     const newPlace: Place = {
       id: Date.now().toString(),
-      name,
-      coords,
-      image,
+      name: name,
+      coords: coords,
+      image: image,
     };
+
     setPlaces([newPlace, ...places]);
+
     setName('');
     setCoords('');
     setImage(null);
@@ -55,7 +66,7 @@ export default function HomeScreen() {
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.title}>Platsloggan</Text>
+      <Text style={styles.title}>Platsloggan 📍</Text>
 
       <TextInput
         style={styles.input}
@@ -65,13 +76,13 @@ export default function HomeScreen() {
       />
 
       <Pressable style={styles.btn} onPress={getLocation}>
-        <Text style={styles.btnText}>Hämta GPS</Text>
+        <Text style={styles.btnText}>📍 Hämta GPS</Text>
       </Pressable>
 
       {coords ? <Text style={styles.text}>Position: {coords}</Text> : null}
 
       <Pressable style={styles.btn} onPress={pickImage}>
-        <Text style={styles.btnText}>Välj bild</Text>
+        <Text style={styles.btnText}>🖼️ Välj bild</Text>
       </Pressable>
 
       {image ? <Image source={{ uri: image }} style={styles.img} /> : null}
@@ -82,35 +93,40 @@ export default function HomeScreen() {
 
       <Text style={styles.subTitle}>Mina sparade platser ({places.length}):</Text>
 
-      {places.map((item) => (
-        <View key={item.id} style={styles.card}>
-          {item.image ? <Image source={{ uri: item.image }} style={styles.cardImg} /> : null}
-          <View style={{ flex: 1 }}>
-            <Text style={styles.cardTitle}>{item.name}</Text>
-            {item.coords ? <Text style={styles.cardText}>Position: {item.coords}</Text> : null}
-            <Pressable
-              style={styles.btnNav}
-              onPress={() => router.push(`/details/${encodeURIComponent(item.name)}`)}
-            >
-              <Text style={styles.btnText}>Gå till detaljer</Text>
-            </Pressable>
+      {places.length === 0 ? (
+        <Text style={styles.emptyText}>Inga platser sparade än.</Text>
+      ) : (
+        places.map((item) => (
+          <View key={item.id} style={styles.card}>
+            {item.image ? <Image source={{ uri: item.image }} style={styles.cardImg} /> : null}
+            <View style={{ flex: 1 }}>
+              <Text style={styles.cardTitle}>{item.name}</Text>
+              {item.coords ? <Text style={styles.cardText}>Position: {item.coords}</Text> : null}
+              <Pressable
+                style={styles.btnNav}
+                onPress={() => router.push(`/details/${encodeURIComponent(item.name)}`)}
+              >
+                <Text style={styles.btnText}>Gå till detaljer</Text>
+              </Pressable>
+            </View>
           </View>
-        </View>
-      ))}
+        ))
+      )}
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   container: { padding: 20, backgroundColor: '#fff', paddingBottom: 40 },
-  title: { fontSize: 22, fontWeight: 'bold', marginBottom: 15, textAlign: 'center' },
+  title: { fontSize: 24, fontWeight: 'bold', marginBottom: 15, textAlign: 'center' },
   subTitle: { fontSize: 18, fontWeight: 'bold', marginTop: 25, marginBottom: 10 },
+  emptyText: { color: '#888', fontStyle: 'italic', textAlign: 'center', marginTop: 5 },
   input: { borderWidth: 1, borderColor: '#ccc', padding: 10, borderRadius: 5, marginBottom: 10 },
   btn: { backgroundColor: '#007AFF', padding: 10, borderRadius: 5, alignItems: 'center', marginBottom: 10 },
   btnSave: { backgroundColor: '#34C759', padding: 12, borderRadius: 5, alignItems: 'center', marginTop: 5, marginBottom: 10 },
   btnNav: { backgroundColor: '#007AFF', padding: 8, borderRadius: 5, alignItems: 'center', marginTop: 8 },
   btnText: { color: '#fff', fontWeight: 'bold' },
-  text: { textAlign: 'center', marginBottom: 10 },
+  text: { textAlign: 'center', marginBottom: 10, color: '#333' },
   img: { width: '100%', height: 120, borderRadius: 5, marginBottom: 10 },
   card: { flexDirection: 'row', borderBottomWidth: 1, borderColor: '#eee', paddingVertical: 12, alignItems: 'center', gap: 12 },
   cardImg: { width: 65, height: 65, borderRadius: 5 },
